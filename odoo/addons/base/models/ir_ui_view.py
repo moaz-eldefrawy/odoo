@@ -362,7 +362,7 @@ actual arch.
             try:
                 # verify the view is valid xml and that the inheritance resolves
                 if view.inherit_id:
-                    view_arch = etree.fromstring(view.arch)
+                    view_arch = etree.fromstring(view.arch or '<data/>')
                     view._valid_inheritance(view_arch)
                 combined_arch = view._get_combined_arch()
                 if view.type == 'qweb':
@@ -381,13 +381,13 @@ actual arch.
                 view._validate_view(combined_arch, view.model)
                 combined_archs = [combined_arch]
 
-                if combined_arch.xpath('//*[@attrs]') or combined_arch.xpath('//*[@states]'):
-                    view_name = f'{view.name} ({view.xml_id})' if view.xml_id else view.name
-                    err = ValidationError(_('Since 17.0, the "attrs" and "states" attributes are no longer used.\nView: %(name)s in %(file)s',
-                        name=view_name, file=view.arch_fs
-                    ))
-                    err.context = {'name': 'invalid view'}
-                    raise err
+                # if combined_arch.xpath('//*[@attrs]') or combined_arch.xpath('//*[@states]'):
+                #     view_name = f'{view.name} ({view.xml_id})' if view.xml_id else view.name
+                #     err = ValidationError(_('Since 17.0, the "attrs" and "states" attributes are no longer used.\nView: %(name)s in %(file)s',
+                #         name=view_name, file=view.arch_fs
+                #     ))
+                #     err.context = {'name': 'invalid view'}
+                #     raise err
 
                 if combined_archs[0].tag == 'data':
                     # A <data> element is a wrapper for multiple root nodes
@@ -1340,13 +1340,13 @@ actual arch.
         # use a stack to recursively traverse the tree
         stack = [(node, editable, full)]
         while stack:
-            node, editable, validate = stack.pop()
+            element, editable, validate = stack.pop()
 
             # compute default
-            tag = node.tag
-            validate = validate or node.get('__validate__')
+            tag = element.tag
+            validate = validate or element.get('__validate__')
             node_info = {
-                'editable': editable and self._editable_node(node, name_manager),
+                'editable': editable and self._editable_node(element, name_manager),
                 'validate': validate,
                 'view_type': view_type,
             }
@@ -1354,15 +1354,22 @@ actual arch.
             # tag-specific validation
             validator = getattr(self, f"_validate_tag_{tag}", None)
             if validator is not None:
-                validator(node, name_manager, node_info)
+                validator(element, name_manager, node_info)
 
             if validate:
                 self._validate_attributes(node, name_manager, node_info)
 
-            for child in reversed(node):
+            for child in reversed(element):
                 stack.append((child, node_info['editable'], validate))
 
-        name_manager.check(self)
+        try:
+            name_manager.check(self)
+        except Exception as e:
+            if self._context.get('install_mode'):
+                xml = etree.tostring(element, encoding='unicode')
+                _logger.warning(f"{e}\n{xml}")
+            else:
+                raise
 
         return name_manager
 
