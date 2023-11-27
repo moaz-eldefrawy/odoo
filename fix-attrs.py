@@ -1,5 +1,6 @@
 import subprocess
 from os.path import expanduser
+import os
 import sys
 import logging
 
@@ -77,6 +78,11 @@ def main():
     addons_path = sys.argv[1]
   if len(sys.argv) > 2:
     addons_install = sys.argv[2]
+
+  # check that file "odoo-bin" exists
+  if not os.path.isfile(ODOO_HOME + "/odoo-bin"):
+    logging.error("odoo-bin file not found. Please run this in the odoo directory")
+    sys.exit(1)
   
   if not addons_path and not addons_install:
     logging.error("addons_path or addons_install are not provided")
