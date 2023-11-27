@@ -1,6 +1,6 @@
 import subprocess
 from os.path import expanduser
-import time
+import sys
 
 HOME = expanduser("~")
 # this is the commit hash of the odoo repo that we want to use during installation
@@ -63,22 +63,48 @@ def git_clear_changes(path):
   print('git reset --hard')
   subprocess.call(['git', 'reset', '--hard'], cwd=path)
 
+
+def git_add_remote(path, remote_name, remote_url):
+  """runs git remote add on a directory"""
+  print('git remote add ' + remote_name + ' ' + remote_url)
+  subprocess.call(['git', 'remote', 'add', remote_name, remote_url], cwd=path)
+
+def git_fetch_remote(path, remote_name):
+  """runs git fetch on a directory"""
+  print('git fetch ' + remote_name)
+  subprocess.call(['git', 'fetch', remote_name], cwd=path)
+
+def git_checkout_remote_branch(path, remote_name, branch):
+  """runs git checkout on a directory"""
+  print('git checkout ' + remote_name + '/' + branch)
+  subprocess.call(['git', 'checkout', remote_name + '/' + branch], cwd=path)
+
 def main():
+
+  script_args = sys.argv[1:]
+  addons_path = script_args[0]
+
+  # git add moaz-origin https://github.com/moaz-eldefrawy/odoo
+  # git fetch moaz-origin
   print("fixing `attrs` and `states` fields in odoo")
 
-
-  # # get the current branch
+  # get the current branch
   current_branch = git_get_current_branch(ODOO_HOME)
   print('current branch: ' + current_branch)
 
   # stash the current branch
   changes_staged: bool = git_stash_dir(ODOO_HOME)
-  # checkout the commit hash
-  git_checkout_commit_hash(ODOO_HOME, ODOO_COMMIT_HASH)
+  
+  # # checkout the commit hash
+  # git_checkout_commit_hash(ODOO_HOME, ODOO_COMMIT_HASH)
 
-  #  apply the patch
-  git_apply_patch(ODOO_HOME, PATCH_PATH)
+  # #  apply the patch
+  # git_apply_patch(ODOO_HOME, PATCH_PATH)
 
+  git_add_remote(ODOO_HOME, 'moaz-origin', 'https://github.com/moaz-eldefrawy/odoo')
+  git_fetch_remote(ODOO_HOME, 'moaz-origin')
+  git_checkout_remote_branch(ODOO_HOME, 'moaz-origin', 'convert-attrs-and-states')
+  
   # run odoo install
   run_odoo_install(ODOO_HOME, addons_path)
 
@@ -92,6 +118,5 @@ def main():
   if changes_staged:
     git_stash_pop(path=ODOO_HOME)
 
+
 main()
-
-
