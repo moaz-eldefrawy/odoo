@@ -85,18 +85,24 @@ def get_child_directory_path(path, child_dir_name):
   return os.path.join(path, child_dir_name)
 
 def main():
+  # declare variables
+  odoo_path = None
+  enterprise_path = None
+  
   if len(sys.argv) > 1:
     addons_path = sys.argv[1]
   if len(sys.argv) > 2:
     addons_install = sys.argv[2]
   if len(sys.argv) > 3:
     odoo_path = sys.argv[3]
-  if len(sys.args) > 4:
-    enterprise_path = sys.argv[4]
+  if len(sys.argv) > 4:
+    enterprise_path = sys.argv[4] 
   
-  odoo_path = odoo_path | DEFAULT_ODOO_HOME
-  enterprise_default_path = get_child_directory_path(get_parent_directly(odoo_path), "enterprise")
-  enterprise_path = enterprise_path | enterprise_default_path 
+  if not odoo_path:
+    odoo_path = DEFAULT_ODOO_HOME
+
+  if not enterprise_path:
+    enterprise_path =  get_child_directory_path(get_parent_directly(odoo_path), "enterprise")
 
   # check that file "odoo-bin" exists
   if not os.path.isfile(odoo_path + "/odoo-bin"):
