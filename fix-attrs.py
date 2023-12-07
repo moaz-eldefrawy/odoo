@@ -38,8 +38,8 @@ def reset_db(db_name):
 def run_odoo_install(path, addons_paths, addons_install):
   """runs odoo install on an addons directory"""
   reset_db(DB_NAME)
-  logging.info('running: odoo -i ' + addons_install + ' --addons-path=' + addons_paths + ' -d ' + DB_NAME)
-  subprocess.call(['./odoo-bin', '-i', addons_install, '--addons-path=' + addons_paths, '-d', DB_NAME, "--stop-after-init"], cwd=path)
+  logging.info('running: odoo -i ' + addons_install + ' --addons-path=' + "addons/," + addons_paths + ' -d ' + DB_NAME + "--stop-after-init")
+  subprocess.call(['./odoo-bin', '-i', addons_install, '--addons-path=' + "addons/," + addons_paths, '-d', DB_NAME, "--stop-after-init"], cwd=path)
   
 def git_get_current_branch(path):
   """returns the current branch of a directory"""
@@ -102,11 +102,11 @@ def main():
     odoo_path = DEFAULT_ODOO_HOME
 
   if not enterprise_path:
-    enterprise_path =  get_child_directory_path(get_parent_directly(odoo_path), "enterprise")
+    enterprise_path = get_child_directory_path(get_parent_directly(odoo_path), "enterprise")
 
   # check that file "odoo-bin" exists
   if not os.path.isfile(odoo_path + "/odoo-bin"):
-    logging.error("odoo-bin file not found. Please provide the path to doo directory")
+    logging.error("odoo-bin file not found. Please provide the path to odoo directory")
     sys.exit(1)
 
   # check that file "enterprise" exists
