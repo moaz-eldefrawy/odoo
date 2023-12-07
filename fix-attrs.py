@@ -139,13 +139,17 @@ def main():
   git_add_remote(odoo_path, 'moaz-origin', REMOTE_BRANCH)
   git_fetch_remote(odoo_path, 'moaz-origin')
 
+  # checkout the branches that has the fix
   git_checkout_branch(odoo_path, 'moaz-origin/17.0-fix_attrs_and_states-meld')
   git_checkout_branch(enterprise_path, ENTERPRISE_COMMIT_HASH)
 
+  # apply the patch
   run_odoo_install(odoo_path, enterprise_path, addons_path, addons_install)
 
+  # clear changes after curl
   git_clear_changes(odoo_path)
 
+  # checkout the original branches
   git_checkout_branch(odoo_path, odoo_current_branch)
   git_checkout_branch(enterprise_path, enterprise_current_branch)
 
