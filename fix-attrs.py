@@ -106,21 +106,18 @@ def main():
 
   # check that file "odoo-bin" exists
   if not os.path.isfile(odoo_path + "/odoo-bin"):
-    logging.error("odoo-bin file not found. Please run this in the odoo directory")
+    logging.error("odoo-bin file not found. Please provide the path to doo directory")
     sys.exit(1)
 
   # check that file "enterprise" exists
   if not os.path.isdir(enterprise_path):
-    logging.error("enterprise directory not found. Make sure the enterprise directory is in the same folder as odoo directory")
+    logging.error("Enterprise directory not found. Provide the path for enterprise directory")
     sys.exit(1)
   
   # check that file "addons" exists
   if not addons_path and not addons_install:
     logging.error("addons_path or addons_install are not provided")
     sys.exit(1)
-
-  logging.info("odoopath: " + odoo_path)
-  logging.info("enterprise_path: " + enterprise_path)
 
   logging.info("starting: fix `attrs` and `states` fields")
 
