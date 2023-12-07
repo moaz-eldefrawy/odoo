@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 
 HOME = expanduser("~")
 DB_NAME = "convert-attrs-and-states"
-ODOO_HOME = HOME + "/odoo/dev/odoo"
+DEFAULT_ODOO_HOME = HOME + "/odoo/dev/odoo"
 REMOTE_BRANCH = "https://github.com/moaz-eldefrawy/odoo"
 
 def git_stash_dir(path):
@@ -72,46 +72,72 @@ def git_fetch_remote(path, remote_name):
   logging.info('git fetch ' + remote_name)
   subprocess.call(['git', 'fetch', remote_name], cwd=path)
 
+def get_current_dir():
+  """returns the current directory"""
+  return os.path.dirname(os.path.realpath(__file__))
+
+def get_parent_directly(path):
+  """returns the parent directory of a path"""
+  return os.path.dirname(path)
+
+def get_child_directory_path(path, child_dir_name):
+  """returns the path of a child directory"""
+  return os.path.join(path, child_dir_name)
 
 def main():
   if len(sys.argv) > 1:
     addons_path = sys.argv[1]
   if len(sys.argv) > 2:
     addons_install = sys.argv[2]
+  if len(sys.argv) > 3:
+    odoo_path = sys.argv[3]
+  if len(sys.args) > 4:
+    enterprise_path = sys.argv[4]
+  
+  odoo_path = odoo_path | DEFAULT_ODOO_HOME
+  enterprise_default_path = get_child_directory_path(get_parent_directly(odoo_path), "enterprise")
+  enterprise_path = enterprise_path | enterprise_default_path 
 
   # check that file "odoo-bin" exists
-  if not os.path.isfile(ODOO_HOME + "/odoo-bin"):
+  if not os.path.isfile(odoo_path + "/odoo-bin"):
     logging.error("odoo-bin file not found. Please run this in the odoo directory")
     sys.exit(1)
+
+  # check that file "enterprise" exists
+  if not os.path.isdir(enterprise_path):
+    logging.error("enterprise directory not found. Make sure the enterprise directory is in the same folder as odoo directory")
+    sys.exit(1)
   
+  # check that file "addons" exists
   if not addons_path and not addons_install:
     logging.error("addons_path or addons_install are not provided")
     sys.exit(1)
 
+  logging.info("odoopath: " + odoo_path)
+  logging.info("enterprise_path: " + enterprise_path)
+
   logging.info("starting: fix `attrs` and `states` fields")
 
-  current_branch = git_get_current_branch(ODOO_HOME)
+  current_branch = git_get_current_branch(odoo_path)
   logging.info('current branch: ' + current_branch)
 
-  changes_staged: bool = git_stash_dir(ODOO_HOME)
+  changes_staged: bool = git_stash_dir(odoo_path)
 
   # checkout the branch that has the fix
-  git_add_remote(ODOO_HOME, 'moaz-origin', REMOTE_BRANCH)
-  git_fetch_remote(ODOO_HOME, 'moaz-origin')
-  git_checkout_branch(ODOO_HOME, 'moaz-origin/17.0-fix_attrs_and_states-meld')
+  git_add_remote(odoo_path, 'moaz-origin', REMOTE_BRANCH)
+  git_fetch_remote(odoo_path, 'moaz-origin')
+  git_checkout_branch(odoo_path, 'moaz-origin/17.0-fix_attrs_and_states-meld')
 
-  run_odoo_install(ODOO_HOME, addons_path, addons_install)
+  run_odoo_install(odoo_path, addons_path, addons_install)
 
-  git_clear_changes(ODOO_HOME)
+  git_clear_changes(odoo_path)
 
-  git_checkout_branch(ODOO_HOME, current_branch)
+  git_checkout_branch(odoo_path, current_branch)
 
   if changes_staged:
-    git_stash_pop(path=ODOO_HOME)
+    git_stash_pop(path=odoo_path)
 
 
 main()
 
-
-# example: python3 fix-attrs.py addons/,../psbe-mintjens/ mintjens_sale_stock
 
