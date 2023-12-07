@@ -10,6 +10,7 @@ HOME = expanduser("~")
 DB_NAME = "convert-attrs-and-states"
 DEFAULT_ODOO_HOME = HOME + "/odoo/dev/odoo"
 REMOTE_BRANCH = "https://github.com/moaz-eldefrawy/odoo"
+ENTERPRISE_COMMIT_HASH = "6f59d1cad6dac07e331e109181e083efaef78b68"
 
 def git_stash_dir(path):
   """runs git stash on a directory and return false if there are no changes to stash"""
@@ -35,15 +36,19 @@ def reset_db(db_name):
   logging.info('running: createdb ' + db_name)
   subprocess.call(['createdb', db_name])
 
-def run_odoo_install(path, addons_paths, addons_install):
+def run_odoo_install(odoo_path, enterprise_path, addons_paths, addons_install):
   """runs odoo install on an addons directory"""
+  odoo_addons_path = get_child_directory_path(odoo_path, "addons")
+  enterprise_addons_path = enterprise_path
+  full_addons_path = odoo_addons_path + "," + enterprise_addons_path + "," + addons_paths
+
   reset_db(DB_NAME)
-  logging.info('running: odoo -i ' + addons_install + ' --addons-path=' + "addons/," + addons_paths + ' -d ' + DB_NAME + "--stop-after-init")
-  subprocess.call(['./odoo-bin', '-i', addons_install, '--addons-path=' + "addons/," + addons_paths, '-d', DB_NAME, "--stop-after-init"], cwd=path)
+  logging.info('running: odoo -i ' + addons_install + ' --addons-path=' + full_addons_path + ' -d ' + DB_NAME + "--stop-after-init")
+  subprocess.call(['./odoo-bin', '-i', addons_install, '--addons-path=' + full_addons_path , '-d', DB_NAME, "--stop-after-init"], cwd=odoo_path)
   
 def git_get_current_branch(path):
   """returns the current branch of a directory"""
-  logging.info('running: git rev-parse --abbrev-ref HEAD')
+  logging.info('running: getting current branch of ' + path + ' directory')
   return subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=path).decode("utf-8").rstrip()
 
 def git_checkout_branch(path, branch):
@@ -121,23 +126,34 @@ def main():
 
   logging.info("starting: fix `attrs` and `states` fields")
 
-  current_branch = git_get_current_branch(odoo_path)
-  logging.info('current branch: ' + current_branch)
+  odoo_current_branch = git_get_current_branch(odoo_path)
+  enterprise_current_branch = git_get_current_branch(enterprise_path)
+  logging.debug('odoo current branch: ' + odoo_current_branch)
+  logging.info('enterprise current branch: ' + enterprise_current_branch)
 
-  changes_staged: bool = git_stash_dir(odoo_path)
+  logging.info('stashing odoo and enterprise directories')
+  odoo_changes_staged: bool = git_stash_dir(odoo_path)
+  enterprise_changes_staged: bool = git_stash_dir(enterprise_path)
 
   # checkout the branch that has the fix
   git_add_remote(odoo_path, 'moaz-origin', REMOTE_BRANCH)
   git_fetch_remote(odoo_path, 'moaz-origin')
-  git_checkout_branch(odoo_path, 'moaz-origin/17.0-fix_attrs_and_states-meld')
 
-  run_odoo_install(odoo_path, addons_path, addons_install)
+  git_checkout_branch(odoo_path, 'moaz-origin/17.0-fix_attrs_and_states-meld')
+  git_checkout_branch(enterprise_path, ENTERPRISE_COMMIT_HASH)
+
+  run_odoo_install(odoo_path, enterprise_path, addons_path, addons_install)
 
   git_clear_changes(odoo_path)
 
-  git_checkout_branch(odoo_path, current_branch)
+  git_checkout_branch(odoo_path, odoo_current_branch)
+  git_checkout_branch(enterprise_path, enterprise_current_branch)
 
-  if changes_staged:
+  logging.info('unstashing odoo and enterprise directories')
+  if enterprise_changes_staged:
+    git_stash_pop(path=enterprise_path)
+  
+  if odoo_changes_staged:
     git_stash_pop(path=odoo_path)
 
 
