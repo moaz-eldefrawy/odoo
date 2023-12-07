@@ -143,7 +143,7 @@ def main():
   git_checkout_branch(odoo_path, 'moaz-origin/17.0-fix_attrs_and_states-meld')
   git_checkout_branch(enterprise_path, ENTERPRISE_COMMIT_HASH)
 
-  # apply the patch
+  # run odoo to apply the conversion
   run_odoo_install(odoo_path, enterprise_path, addons_path, addons_install)
 
   # clear changes after curl
