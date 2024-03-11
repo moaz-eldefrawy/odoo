@@ -1129,6 +1129,11 @@ def convert_node_modifiers_inplace(root, env, model, view_type, ref):
             xml = etree.tostring(item, encoding='unicode')
             _logger.error("Invalid modifiers syntax: %s\nError: %s\n%s", ref, error, xml)
             return
+        except SyntaxError as error:
+            xml = etree.tostring(item, encoding='unicode')
+            _logger.error("Invalid modifiers syntax: %s\nError: %s\n%s", ref, error, xml)
+            _logger.error("If you are using % to reference data use ref or fix it manually")
+            return
 
         # apply new modifiers on item only when modified...
         for attr in ('column_invisible', 'invisible', 'readonly', 'required'):
